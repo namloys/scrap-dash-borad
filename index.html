@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>ScrapVision — Real-Time Analytics</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=Syne:wght@400;600;700;800&family=Inter:wght@300;400;500&display=swap');
 
@@ -503,6 +504,252 @@
   .status-err { background: rgba(255,68,102,0.1); color: var(--danger); }
 
   .mono { font-family: 'DM Mono', monospace; }
+
+  /* ─── EXCEL IMPORT ───────────────────────── */
+  .excel-section {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 24px;
+    margin-bottom: 20px;
+  }
+
+  .excel-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+
+  .drop-zone {
+    border: 2px dashed var(--border);
+    border-radius: 12px;
+    padding: 36px 24px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.25s;
+    position: relative;
+    background: var(--surface2);
+  }
+
+  .drop-zone:hover, .drop-zone.drag-over {
+    border-color: var(--accent);
+    background: rgba(0,229,160,0.04);
+  }
+
+  .drop-zone input[type="file"] {
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    cursor: pointer;
+    width: 100%;
+    height: 100%;
+  }
+
+  .drop-icon { font-size: 36px; margin-bottom: 12px; }
+
+  .drop-title {
+    font-family: 'Syne', sans-serif;
+    font-weight: 600;
+    font-size: 15px;
+    margin-bottom: 6px;
+  }
+
+  .drop-sub {
+    font-size: 12px;
+    color: var(--muted);
+    font-family: 'DM Mono', monospace;
+  }
+
+  .drop-sub span { color: var(--accent); }
+
+  .excel-loaded {
+    display: none;
+    margin-top: 20px;
+  }
+
+  .excel-loaded.visible { display: block; }
+
+  .excel-file-info {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 16px;
+    background: rgba(0,229,160,0.06);
+    border: 1px solid rgba(0,229,160,0.2);
+    border-radius: 10px;
+    margin-bottom: 16px;
+  }
+
+  .excel-file-icon { font-size: 22px; }
+
+  .excel-file-name {
+    font-family: 'DM Mono', monospace;
+    font-size: 13px;
+    color: var(--accent);
+    flex: 1;
+  }
+
+  .excel-file-meta {
+    font-size: 11px;
+    color: var(--muted);
+    font-family: 'DM Mono', monospace;
+  }
+
+  .clear-excel-btn {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--muted);
+    padding: 5px 12px;
+    border-radius: 6px;
+    font-size: 11px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .clear-excel-btn:hover { border-color: var(--danger); color: var(--danger); }
+
+  .col-mapper {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+
+  .col-map-field label {
+    display: block;
+    font-size: 10px;
+    font-family: 'DM Mono', monospace;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 5px;
+  }
+
+  .col-map-field select {
+    width: 100%;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 8px 10px;
+    border-radius: 7px;
+    font-size: 12px;
+    font-family: 'DM Mono', monospace;
+  }
+
+  .col-map-field select:focus { outline: none; border-color: var(--accent); }
+
+  .import-actions {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+
+  .import-btn {
+    padding: 9px 20px;
+    border-radius: 8px;
+    border: none;
+    font-size: 13px;
+    font-family: 'Syne', sans-serif;
+    font-weight: 600;
+    cursor: pointer;
+    transition: opacity 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .import-btn.primary { background: var(--accent); color: #000; }
+  .import-btn.secondary { background: var(--accent3); color: #fff; }
+  .import-btn.ghost { background: var(--surface2); color: var(--text); border: 1px solid var(--border); }
+  .import-btn:hover { opacity: 0.85; }
+
+  .import-preview {
+    margin-top: 16px;
+    overflow-x: auto;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    display: none;
+  }
+
+  .import-preview.visible { display: block; }
+
+  .import-preview table { width: 100%; }
+
+  .import-preview thead th {
+    background: var(--surface2);
+    padding: 10px 14px;
+    font-size: 10px;
+    font-family: 'DM Mono', monospace;
+    color: var(--accent);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    border-bottom: 1px solid var(--border);
+    white-space: nowrap;
+  }
+
+  .import-preview tbody td {
+    padding: 9px 14px;
+    font-size: 12px;
+    border-bottom: 1px solid rgba(30,35,48,0.5);
+    white-space: nowrap;
+    font-family: 'DM Mono', monospace;
+    color: var(--text);
+  }
+
+  .import-preview tbody tr:hover { background: var(--surface2); }
+
+  .preview-note {
+    font-size: 11px;
+    color: var(--muted);
+    font-family: 'DM Mono', monospace;
+    padding: 8px 14px;
+    background: var(--surface2);
+    border-top: 1px solid var(--border);
+  }
+
+  .sheet-tabs {
+    display: flex;
+    gap: 4px;
+    margin-bottom: 12px;
+    flex-wrap: wrap;
+  }
+
+  .sheet-tab {
+    padding: 5px 12px;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    background: var(--surface2);
+    color: var(--muted);
+    font-size: 11px;
+    font-family: 'DM Mono', monospace;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .sheet-tab.active { background: rgba(0,229,160,0.1); border-color: var(--accent); color: var(--accent); }
+
+  .import-toast {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    background: var(--surface);
+    border: 1px solid var(--accent);
+    color: var(--accent);
+    padding: 12px 20px;
+    border-radius: 10px;
+    font-size: 13px;
+    font-family: 'DM Mono', monospace;
+    z-index: 999;
+    transform: translateY(80px);
+    opacity: 0;
+    transition: all 0.3s;
+    pointer-events: none;
+  }
+
+  .import-toast.show { transform: translateY(0); opacity: 1; }
 
   /* ─── SCROLLBAR ──────────────────────────── */
   ::-webkit-scrollbar { width: 6px; }
@@ -1004,6 +1251,61 @@
     </div>
   </div>
 
+  <!-- EXCEL IMPORT -->
+  <div class="excel-section">
+    <div class="excel-header">
+      <div class="chart-title">📂 Import Excel Data</div>
+      <span class="chart-badge badge-live" style="background:rgba(0,229,160,0.1);color:var(--accent);border-color:rgba(0,229,160,0.3)">XLSX / CSV</span>
+    </div>
+
+    <!-- Drop Zone -->
+    <div class="drop-zone" id="dropZone">
+      <input type="file" id="excelFile" accept=".xlsx,.xls,.csv" onchange="handleFileSelect(this.files[0])">
+      <div class="drop-icon">📊</div>
+      <div class="drop-title">วางไฟล์ Excel หรือ CSV ที่นี่</div>
+      <div class="drop-sub">รองรับ .xlsx .xls .csv · หรือ <span>คลิกเพื่อเลือกไฟล์</span></div>
+    </div>
+
+    <!-- After file loaded -->
+    <div class="excel-loaded" id="excelLoaded">
+
+      <div class="excel-file-info">
+        <div class="excel-file-icon">📗</div>
+        <div class="excel-file-name" id="excelFileName">—</div>
+        <div class="excel-file-meta" id="excelFileMeta">—</div>
+        <button class="clear-excel-btn" onclick="clearExcel()">✕ ลบ</button>
+      </div>
+
+      <!-- Sheet tabs -->
+      <div class="sheet-tabs" id="sheetTabs"></div>
+
+      <!-- Column Mapper -->
+      <div style="margin-bottom:10px">
+        <div style="font-size:11px;font-family:'DM Mono',monospace;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:10px">
+          🗂 จับคู่คอลัมน์กับฟิลด์ของระบบ
+        </div>
+        <div class="col-mapper" id="colMapper"></div>
+      </div>
+
+      <!-- Preview -->
+      <div class="import-preview" id="importPreview">
+        <table>
+          <thead id="previewHead"></thead>
+          <tbody id="previewBody"></tbody>
+        </table>
+        <div class="preview-note" id="previewNote"></div>
+      </div>
+
+      <!-- Actions -->
+      <div class="import-actions" style="margin-top:16px">
+        <button class="import-btn primary" onclick="importToChart()">📈 นำเข้าสู่กราฟ + ตาราง</button>
+        <button class="import-btn secondary" onclick="importToWeekly()">📋 นำเข้าสู่ Weekly Summary</button>
+        <button class="import-btn ghost" onclick="previewData()">👁 Preview ข้อมูล</button>
+      </div>
+
+    </div>
+  </div>
+
   <!-- WEEKLY SUMMARY -->
   <div class="weekly-section">
     <div class="weekly-header">
@@ -1360,6 +1662,227 @@ function liveUpdate() {
   mainChart.data.datasets[1].data = mainChart.data.datasets[1].data.map(v => Math.max(0, v + rand(-10, 15)));
   mainChart.update('none');
 }
+
+// ─── EXCEL IMPORT SYSTEM ──────────────────────────────
+let workbook = null;
+let activeSheet = null;
+let parsedRows = [];
+let excelColumns = [];
+
+const FIELD_MAP = {
+  source:  { label: 'Source / แหล่งข้อมูล',  match: ['source','แหล่ง','ที่มา','origin'] },
+  records: { label: 'Records / จำนวน',         match: ['record','จำนวน','count','total','amount'] },
+  latency: { label: 'Latency (ms)',             match: ['latency','delay','ms','เวลา','response'] },
+  status:  { label: 'Status',                   match: ['status','สถานะ','state','result'] },
+  date:    { label: 'Date / วันที่',            match: ['date','วันที่','day','week','time','timestamp'] },
+  problem: { label: 'Problem / ปัญหา',          match: ['problem','ปัญหา','issue','error','bug'] },
+  action:  { label: 'Action / การแก้ไข',        match: ['action','แก้ไข','fix','solution','resolve'] },
+};
+
+function handleFileSelect(file) {
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      workbook = XLSX.read(e.target.result, { type: 'binary', cellDates: true });
+      activeSheet = workbook.SheetNames[0];
+      renderSheetTabs();
+      loadSheet(activeSheet);
+      document.getElementById('excelLoaded').classList.add('visible');
+      document.getElementById('excelFileName').textContent = file.name;
+    } catch(err) { showToast('❌ ไม่สามารถอ่านไฟล์ได้ กรุณาตรวจสอบ format', 'error'); }
+  };
+  reader.readAsBinaryString(file);
+}
+
+function renderSheetTabs() {
+  const tabs = document.getElementById('sheetTabs');
+  tabs.innerHTML = workbook.SheetNames.map(name => `
+    <button class="sheet-tab ${name===activeSheet?'active':''}" onclick="loadSheet('${name}')">${name}</button>
+  `).join('');
+}
+
+function loadSheet(name) {
+  activeSheet = name;
+  document.querySelectorAll('.sheet-tab').forEach(t => t.classList.toggle('active', t.textContent===name));
+  const ws = workbook.Sheets[name];
+  const json = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' });
+  if (!json.length) return;
+
+  const headers = json[0].map(h => String(h).trim());
+  excelColumns = headers;
+  parsedRows = json.slice(1).filter(r => r.some(c => c !== ''));
+
+  document.getElementById('excelFileMeta').textContent =
+    `${parsedRows.length} rows · ${headers.length} cols · sheet: ${name}`;
+
+  renderColMapper(headers);
+  previewData();
+}
+
+function guessColumn(fieldKey) {
+  const keywords = FIELD_MAP[fieldKey].match;
+  const idx = excelColumns.findIndex(col =>
+    keywords.some(k => col.toLowerCase().includes(k))
+  );
+  return idx >= 0 ? idx : '';
+}
+
+function renderColMapper(headers) {
+  const mapper = document.getElementById('colMapper');
+  const opts = ['<option value="">— ไม่เลือก —</option>',
+    ...headers.map((h,i) => `<option value="${i}">${h}</option>`)
+  ].join('');
+
+  mapper.innerHTML = Object.entries(FIELD_MAP).map(([key, cfg]) => {
+    const guess = guessColumn(key);
+    return `
+      <div class="col-map-field">
+        <label>${cfg.label}</label>
+        <select id="map_${key}">${opts.replace(`value="${guess}"`, `value="${guess}" selected`)}</select>
+      </div>`;
+  }).join('');
+}
+
+function getMapping() {
+  const map = {};
+  Object.keys(FIELD_MAP).forEach(key => {
+    const sel = document.getElementById('map_' + key);
+    map[key] = sel && sel.value !== '' ? parseInt(sel.value) : null;
+  });
+  return map;
+}
+
+function previewData() {
+  const preview = document.getElementById('importPreview');
+  const thead = document.getElementById('previewHead');
+  const tbody = document.getElementById('previewBody');
+  const note  = document.getElementById('previewNote');
+  preview.classList.add('visible');
+
+  thead.innerHTML = `<tr>${excelColumns.map(h => `<th>${h}</th>`).join('')}</tr>`;
+  const rows = parsedRows.slice(0, 8);
+  tbody.innerHTML = rows.map(row =>
+    `<tr>${excelColumns.map((_,i) => `<td>${row[i] ?? ''}</td>`).join('')}</tr>`
+  ).join('');
+  note.textContent = `แสดง ${rows.length} จาก ${parsedRows.length} แถว`;
+}
+
+function importToChart() {
+  const map = getMapping();
+  if (!parsedRows.length) return showToast('❌ ไม่มีข้อมูล');
+
+  // Build table rows from Excel
+  const newRows = parsedRows.map((row, i) => ({
+    id: i + 1,
+    source: map.source !== null ? String(row[map.source] || 'Unknown') : 'Excel Import',
+    records: map.records !== null ? parseInt(row[map.records]) || 0 : 0,
+    latency: map.latency !== null ? parseInt(row[map.latency]) || 0 : 0,
+    status: normalizeStatus(map.status !== null ? String(row[map.status] || '') : 'ok'),
+    time: map.date !== null ? formatCell(row[map.date]) : '—',
+  }));
+
+  tableData = newRows;
+  filterTable();
+
+  // Update KPI
+  const total = newRows.reduce((s,r) => s + r.records, 0);
+  const okCount = newRows.filter(r => r.status === 'ok').length;
+  const successRate = Math.round((okCount / newRows.length) * 100);
+  const avgLat = Math.round(newRows.reduce((s,r) => s + r.latency, 0) / newRows.length);
+
+  document.getElementById('kpi1').textContent = total.toLocaleString();
+  document.getElementById('kpi2').textContent = successRate + '%';
+  document.getElementById('kpi4').textContent = avgLat + 'ms';
+
+  // Update main chart with date/records
+  if (map.date !== null && map.records !== null) {
+    const labels = parsedRows.slice(0,20).map(r => formatCell(r[map.date]));
+    const data   = parsedRows.slice(0,20).map(r => parseInt(r[map.records]) || 0);
+    mainChart.data.labels = labels;
+    mainChart.data.datasets[0].data = data;
+    mainChart.update();
+  }
+
+  showToast(`✓ นำเข้าข้อมูล ${newRows.length} แถวสู่กราฟ + ตารางแล้ว`);
+}
+
+function importToWeekly() {
+  const map = getMapping();
+  if (!parsedRows.length) return showToast('❌ ไม่มีข้อมูล');
+  if (!map.problem && !map.action) return showToast('⚠ กรุณาเลือก column Problem หรือ Action ก่อน');
+
+  // Find or create week
+  if (!weeks.length) addWeek();
+  const weekId = activeWeekId;
+  const week = weeks.find(w => w.id === weekId);
+  if (!week) return;
+
+  parsedRows.forEach(row => {
+    const prob = map.problem !== null ? String(row[map.problem] || '') : '';
+    const act  = map.action  !== null ? String(row[map.action]  || '') : '';
+    const stat = map.status  !== null ? normalizeStatus(String(row[map.status] || '')) : 's-pending';
+    if (!prob && !act) return;
+    week.issues.push({ id: 'i' + Date.now() + Math.random(), problem: prob, action: act, status: stat });
+  });
+
+  renderWeekPanel(weekId);
+  showToast(`✓ นำเข้า ${parsedRows.length} รายการสู่ Weekly Summary แล้ว`);
+}
+
+function normalizeStatus(raw) {
+  const r = raw.toLowerCase();
+  if (r.includes('ok') || r.includes('success') || r.includes('resolve') || r.includes('สำเร็จ')) return 'ok';
+  if (r.includes('warn') || r.includes('progress') || r.includes('กำลัง')) return 'warn';
+  if (r.includes('err') || r.includes('fail') || r.includes('ผิดพลาด') || r.includes('pending')) return 'err';
+
+  // For weekly status mapping
+  if (r.includes('resolve')) return 's-resolved';
+  if (r.includes('progress') || r.includes('กำลัง')) return 's-progress';
+  if (r.includes('monitor')) return 's-monitor';
+  return r.startsWith('s-') ? r : 's-pending';
+}
+
+function formatCell(val) {
+  if (!val) return '—';
+  if (val instanceof Date) return val.toLocaleDateString('th-TH');
+  return String(val);
+}
+
+function clearExcel() {
+  workbook = null; activeSheet = null; parsedRows = []; excelColumns = [];
+  document.getElementById('excelLoaded').classList.remove('visible');
+  document.getElementById('importPreview').classList.remove('visible');
+  document.getElementById('excelFile').value = '';
+  showToast('🗑 ล้างข้อมูล Excel แล้ว', 'warn');
+}
+
+function showToast(msg, type = 'ok') {
+  let toast = document.getElementById('importToast');
+  if (!toast) {
+    toast = document.createElement('div');
+    toast.id = 'importToast';
+    toast.className = 'import-toast';
+    document.body.appendChild(toast);
+  }
+  toast.textContent = msg;
+  toast.style.borderColor = type === 'error' ? 'var(--danger)' : type === 'warn' ? 'var(--yellow)' : 'var(--accent)';
+  toast.style.color = type === 'error' ? 'var(--danger)' : type === 'warn' ? 'var(--yellow)' : 'var(--accent)';
+  toast.classList.add('show');
+  setTimeout(() => toast.classList.remove('show'), 3000);
+}
+
+// Drag and drop
+document.addEventListener('DOMContentLoaded', () => {
+  const zone = document.getElementById('dropZone');
+  zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('drag-over'); });
+  zone.addEventListener('dragleave', () => zone.classList.remove('drag-over'));
+  zone.addEventListener('drop', e => {
+    e.preventDefault(); zone.classList.remove('drag-over');
+    const file = e.dataTransfer.files[0];
+    if (file) handleFileSelect(file);
+  });
+});
 
 // ─── WEEKLY SUMMARY SYSTEM ────────────────────────────
 let weeks = [];
